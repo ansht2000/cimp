@@ -1,0 +1,21 @@
+# ignore all .txt files except gitlog
+*.txt
+!gitlog.txt
+
+# ignore all .o files and ecexutables
+*.o
+checkerboard
+img_cmp
+project
+
+# ignore all .ppm files
+*.ppm
+
+# test folders
+data
+results
+testresults
+
+# ignore test files
+checkerboard.c
+img_cmp.c
