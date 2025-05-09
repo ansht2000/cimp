@@ -28,4 +28,8 @@ int carveSeams(Image *img, int num_seams);
 
 int seam(Image *img, float scale_factor_row, float scale_factor_col);
 
+int max(int left, int right);
+
+Image* blend(Image *img_one, Image *img_two, float alpha);
+
 #endif // IMG_PROCESSING_H

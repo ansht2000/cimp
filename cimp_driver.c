@@ -29,9 +29,17 @@ int runImgProcessing(int argc, char **argv) {
         return 1;  // Wrong usage
     }
     
-    FILE *input_file = fopen(argv[1], "r");
-    FILE *output_file = fopen(argv[2], "w");
     const char *operation = argv[3];
+    FILE *input_file = fopen(argv[1], "r");;
+    FILE *input_two;
+    FILE *output_file;
+    if (strcmp(operation, "blend") == 0) {
+        input_two = fopen(argv[2], "r");
+        output_file = fopen(argv[4], "w");
+    } else {
+        output_file = fopen(argv[2], "w");
+    }
+    
 
     Image *img = ReadPPM(input_file);
     if (img == NULL) {
@@ -123,6 +131,21 @@ int runImgProcessing(int argc, char **argv) {
             return 7;  // Invalid arguments for operation
         }
         status = seam(img, x_scale, y_scale);
+    } else if (strcmp(operation, "blend") == 0) {
+        if (argc != 6) {
+            fprintf(stderr, "Error: Incorrect number of arguments for blend.\n");
+            FreeImage(img);
+            fclose(input_file);
+            fclose(output_file);
+            return 6;  // Incorrect number of arguments
+        }
+        float alpha = atof(argv[5]);
+        Image *img_two = ReadPPM(input_two);
+        Image *img_blend = blend(img, img_two, alpha);
+        FreeImage(img);
+        img = img_blend;
+        status = 0;
+
     } else {
         fprintf(stderr, "Error: Unsupported image processing operation.\n");
         FreeImage(img);

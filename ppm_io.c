@@ -147,13 +147,6 @@ int WritePPM(FILE *fp, const Image *im) {
   return num_pixels_written;
 }
 
-/* InitImage
- * Initialize the image's pixel data to a default state (all zeros).
- */
-void InitImage(Image *img) {
-  if (img) memset(img->data, 0, (img->rows * img->cols) * sizeof(Pixel));
-}
-
 /* NewImage
  * Create a new image with r rows and c columns.
  * Returns the address of the new heap-allocated Image.

@@ -109,8 +109,6 @@ int transpose(Image *img) {
         fprintf(stderr, "Memory allocation failed.\n");
         return 8;
     }
-    // initialize transpose image data
-    InitImage(&im_trans);
     // loop through rows and columns of transpose image data
     for (int i = 0; i < trans_rows; i++) {
         for (int j = 0; j < trans_cols; j++) {
@@ -348,4 +346,52 @@ int seam(Image *img, float scale_factor_col, float scale_factor_row) {
         return status;
     }
     return status;
+}
+
+/* max
+ * Return the maximum of two different numbers
+*/
+int max(int left, int right) {
+    if (left > right) {
+        return left;
+    } else {
+        return right;
+    }
+}
+
+/* blend
+ * Blend two given images together.
+ * Return 0 if successful
+*/
+Image* blend(Image *img_one, Image *img_two, float alpha) {
+    if (alpha < 0 || alpha > 1) {
+        fprintf(stderr, "alpha value must be in the range [0, 1]\n");
+        return NULL;
+    }
+
+    int blend_img_cols = max(img_one->cols, img_two->cols);
+    int blend_img_rows = max(img_one->rows, img_two->rows);
+    Image *img_blend = NewImage(blend_img_rows, blend_img_cols);
+
+    for (int i = 0; i < blend_img_rows; i++) {
+        for (int j = 0; j < blend_img_cols; j++) {
+            if (i > img_one->rows || j > img_one->cols) {
+                img_blend->data[i * blend_img_cols + j] = img_two->data[i * img_two->cols + j];
+            } else if (i > img_two->rows || j > img_two->cols) {
+                img_blend->data[i * blend_img_cols + j] = img_one->data[i * img_one->cols + j];
+            } else {
+                float pix_one_contrib_r = img_one->data[i * img_one->cols + j].r * alpha;
+                float pix_one_contrib_g = img_one->data[i * img_one->cols + j].g * alpha;
+                float pix_one_contrib_b = img_one->data[i * img_one->cols + j].b * alpha;
+                float pix_two_contrib_r = img_two->data[i * img_two->cols + j].r * (1 - alpha);
+                float pix_two_contrib_g = img_two->data[i * img_two->cols + j].g * (1 - alpha);
+                float pix_two_contrib_b = img_two->data[i * img_two->cols + j].b * (1 - alpha);
+                img_blend->data[i * blend_img_cols + j].r = pix_one_contrib_r + pix_two_contrib_r;
+                img_blend->data[i * blend_img_cols + j].g = pix_one_contrib_g + pix_two_contrib_g;
+                img_blend->data[i * blend_img_cols + j].b = pix_one_contrib_b + pix_two_contrib_b;
+            }
+        }
+    }
+
+    return img_blend;
 }
