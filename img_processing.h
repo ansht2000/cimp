@@ -30,6 +30,6 @@ int seam(Image *img, float scale_factor_row, float scale_factor_col);
 
 int max(int left, int right);
 
-Image* blend(Image *img_one, Image *img_two, float alpha);
+int blend(Image *img_one, Image *img_two, Image **img_blend, float alpha);
 
 #endif // IMG_PROCESSING_H

@@ -363,22 +363,22 @@ int max(int left, int right) {
  * Blend two given images together.
  * Return 0 if successful
 */
-Image* blend(Image *img_one, Image *img_two, float alpha) {
+int blend(Image *img_one, Image *img_two, Image **img_blend, float alpha) {
     if (alpha < 0 || alpha > 1) {
         fprintf(stderr, "alpha value must be in the range [0, 1]\n");
-        return NULL;
+        return 1;
     }
 
     int blend_img_cols = max(img_one->cols, img_two->cols);
     int blend_img_rows = max(img_one->rows, img_two->rows);
-    Image *img_blend = NewImage(blend_img_rows, blend_img_cols);
+    *img_blend = NewImage(blend_img_rows, blend_img_cols);
 
     for (int i = 0; i < blend_img_rows; i++) {
         for (int j = 0; j < blend_img_cols; j++) {
-            if (i > img_one->rows || j > img_one->cols) {
-                img_blend->data[i * blend_img_cols + j] = img_two->data[i * img_two->cols + j];
+            if (i > img_one->rows || j > img_one->cols) { 
+                (*img_blend)->data[i * blend_img_cols + j] = img_two->data[i * img_two->cols + j];
             } else if (i > img_two->rows || j > img_two->cols) {
-                img_blend->data[i * blend_img_cols + j] = img_one->data[i * img_one->cols + j];
+                (*img_blend)->data[i * blend_img_cols + j] = img_one->data[i * img_one->cols + j];
             } else {
                 float pix_one_contrib_r = img_one->data[i * img_one->cols + j].r * alpha;
                 float pix_one_contrib_g = img_one->data[i * img_one->cols + j].g * alpha;
@@ -386,12 +386,12 @@ Image* blend(Image *img_one, Image *img_two, float alpha) {
                 float pix_two_contrib_r = img_two->data[i * img_two->cols + j].r * (1 - alpha);
                 float pix_two_contrib_g = img_two->data[i * img_two->cols + j].g * (1 - alpha);
                 float pix_two_contrib_b = img_two->data[i * img_two->cols + j].b * (1 - alpha);
-                img_blend->data[i * blend_img_cols + j].r = pix_one_contrib_r + pix_two_contrib_r;
-                img_blend->data[i * blend_img_cols + j].g = pix_one_contrib_g + pix_two_contrib_g;
-                img_blend->data[i * blend_img_cols + j].b = pix_one_contrib_b + pix_two_contrib_b;
+                (*img_blend)->data[i * blend_img_cols + j].r = pix_one_contrib_r + pix_two_contrib_r;
+                (*img_blend)->data[i * blend_img_cols + j].g = pix_one_contrib_g + pix_two_contrib_g;
+                (*img_blend)->data[i * blend_img_cols + j].b = pix_one_contrib_b + pix_two_contrib_b;
             }
         }
     }
 
-    return img_blend;
+    return 0;
 }

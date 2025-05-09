@@ -141,10 +141,10 @@ int runImgProcessing(int argc, char **argv) {
         }
         float alpha = atof(argv[5]);
         Image *img_two = ReadPPM(input_two);
-        Image *img_blend = blend(img, img_two, alpha);
+        Image *img_blend;
+        status = blend(img, img_two, &img_blend, alpha);
         FreeImage(img);
         img = img_blend;
-        status = 0;
 
     } else {
         fprintf(stderr, "Error: Unsupported image processing operation.\n");
