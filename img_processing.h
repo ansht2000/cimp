@@ -32,4 +32,6 @@ int max(int left, int right);
 
 int blend(Image *img_one, Image *img_two, Image **img_blend, float alpha);
 
+int pointilism(Image *img);
+
 #endif // IMG_PROCESSING_H

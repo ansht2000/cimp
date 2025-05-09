@@ -6,6 +6,9 @@
 #include <math.h>
 #include <stdlib.h>
 
+#define max(a, b) ((a) > (b) ? (a) : (b))
+#define min(a, b) ((a) < (b) ? (a) : (b))
+
 /* grayscale
  * Convert the input image to grayscale.
  * Return 0 if successful.
@@ -348,17 +351,6 @@ int seam(Image *img, float scale_factor_col, float scale_factor_row) {
     return status;
 }
 
-/* max
- * Return the maximum of two different numbers
-*/
-int max(int left, int right) {
-    if (left > right) {
-        return left;
-    } else {
-        return right;
-    }
-}
-
 /* blend
  * Blend two given images together.
  * Return 0 if successful
@@ -392,6 +384,53 @@ int blend(Image *img_one, Image *img_two, Image **img_blend, float alpha) {
             }
         }
     }
+
+    return 0;
+}
+
+int randInRange(int min, int max) {
+    int rand_num = rand() % (max - min + 1) + min;
+    return rand_num;
+}
+
+void drawCircle(Point top_left, Point bottom_right, Point center, int radius, Image *og_img, Pixel *img_point_data) {
+    int cols_len = og_img->cols;
+    for (int i = top_left.x; i < bottom_right.x; i++) {
+        for (int j = top_left.y; j < bottom_right.y; j++) {
+            int x_len = abs(i - center.x);
+            int y_len = abs(j - center.y);
+            if (round(sqrt(x_len * x_len + y_len * y_len)) < radius) {
+                img_point_data[j * cols_len + i] = og_img->data[center.y * cols_len + center.x];
+            }
+        }
+    }
+}
+
+int pointilism(Image *img) {
+    Pixel *img_point_data = malloc(img->cols * img->rows * sizeof(Pixel));
+    // TODO: add support for custom background color
+    // right now default to white for a canvas aesthetic
+    for (int i = 0; i < img->cols * img->rows; i++) {
+        img_point_data[i].r = 255;
+        img_point_data[i].g = 255;
+        img_point_data[i].b = 255;
+    }
+    int radius;
+    for (int i = 0; i < img->rows; i++) {
+        for (int j = 0; j < img->cols; j++) {
+            int chance = randInRange(1, 100);
+            if (chance == 69 || chance == 42 || chance == 28) {
+                radius = randInRange(2, 10);
+                struct _point top_left = {max(j - radius, 0), max(i - radius, 0)};
+                struct _point bottom_right = {min(j + radius, img->cols), min(i + radius, img->rows)};
+                struct _point center = {j, i};
+                drawCircle(top_left, bottom_right, center, radius, img, img_point_data);
+            }
+        }
+    }
+    
+    free(img->data);
+    img->data = img_point_data;
 
     return 0;
 }

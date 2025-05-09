@@ -30,7 +30,7 @@ int runImgProcessing(int argc, char **argv) {
     }
     
     const char *operation = argv[3];
-    FILE *input_file = fopen(argv[1], "r");;
+    FILE *input_file = fopen(argv[1], "r");
     FILE *input_two;
     FILE *output_file;
     if (strcmp(operation, "blend") == 0) {
@@ -146,7 +146,17 @@ int runImgProcessing(int argc, char **argv) {
         FreeImage(img);
         img = img_blend;
 
-    } else {
+    } else if (strcmp(operation, "pointilism") == 0) {
+        if (argc != 4) {
+            fprintf(stderr, "Error: Incorrect number of arguments for pointilism.\n");
+            FreeImage(img);
+            fclose(input_file);
+            fclose(output_file);
+            return 6;  // Incorrect number of arguments
+        }
+        status = pointilism(img);
+    }
+    else {
         fprintf(stderr, "Error: Unsupported image processing operation.\n");
         FreeImage(img);
         fclose(input_file);
