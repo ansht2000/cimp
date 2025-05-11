@@ -155,8 +155,16 @@ int runImgProcessing(int argc, char **argv) {
             return 6;  // Incorrect number of arguments
         }
         status = pointilism(img);
-    }
-    else {
+    } else if (strcmp(operation, "dither") == 0) {
+        if (argc != 4) {
+            fprintf(stderr, "Error: Incorrect number of arguments for pointilism.\n");
+            FreeImage(img);
+            fclose(input_file);
+            fclose(output_file);
+            return 6;  // Incorrect number of arguments
+        }
+        status = dither(img);
+    } else {
         fprintf(stderr, "Error: Unsupported image processing operation.\n");
         FreeImage(img);
         fclose(input_file);

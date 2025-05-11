@@ -28,10 +28,14 @@ int carveSeams(Image *img, int num_seams);
 
 int seam(Image *img, float scale_factor_row, float scale_factor_col);
 
-int max(int left, int right);
+int randInRange(int min, int max);
+
+void drawCircle(Point top_left, Point bottom_right, Point center, int radius, Image *og_img, Pixel *img_point_data);
 
 int blend(Image *img_one, Image *img_two, Image **img_blend, float alpha);
 
 int pointilism(Image *img);
+
+int dither(Image *img);
 
 #endif // IMG_PROCESSING_H

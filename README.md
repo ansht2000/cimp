@@ -26,10 +26,13 @@ make cimp
 This will create the cimp executable, which you can run with ./cimp <input_file> <output_file> <operation> [<args>]
 
 ## Commands
-Currently there are 6 commands available:
+Currently there are 9 commands available:
 grayscale
 binarize
 crop
 transpose
 gradient
 seam
+blend
+pointilism
+dither

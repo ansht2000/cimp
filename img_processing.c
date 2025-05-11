@@ -14,22 +14,13 @@
  * Return 0 if successful.
  */
 int grayscale(Image *img) {
-    int img_data_length = img->rows * img->cols;
-    unsigned char red;
-    unsigned char green;
-    unsigned char blue;
-    double grayscale;
-    Pixel buffer_pixel;
-    // assign the grayscale value for each pixel
-    for (int i = 0; i < img_data_length; i++) {
-        buffer_pixel = img->data[i];
-        red = buffer_pixel.r;
-        green = buffer_pixel.g;
-        blue = buffer_pixel.b;
-        grayscale = (double) (.3 * red + .59 * green + .11 * blue);
-        img->data[i].r = (unsigned char) floor(grayscale);
-        img->data[i].g = (unsigned char) floor(grayscale);
-        img->data[i].b = (unsigned char) floor(grayscale);
+    const size_t img_data_length = (size_t) img->rows * img->cols;
+    unsigned char gray;
+    Pixel *pix = img->data;
+    // assign the gray value for each pixel
+    for (size_t i = 0; i < img_data_length; ++i, ++pix) {
+        gray = (77 * pix->r + 150 * pix->g + 29 * pix->b) >> 8;
+        pix->r = pix->g = pix->b = gray;
     }
     return 0;
 }
@@ -420,7 +411,7 @@ int pointilism(Image *img) {
         for (int j = 0; j < img->cols; j++) {
             int chance = randInRange(1, 100);
             if (chance == 69 || chance == 42 || chance == 28) {
-                radius = randInRange(2, 10);
+                radius = randInRange(3, 10);
                 struct _point top_left = {max(j - radius, 0), max(i - radius, 0)};
                 struct _point bottom_right = {min(j + radius, img->cols), min(i + radius, img->rows)};
                 struct _point center = {j, i};
@@ -431,6 +422,57 @@ int pointilism(Image *img) {
     
     free(img->data);
     img->data = img_point_data;
+
+    return 0;
+}
+
+int clamp(int val, int min, int max) {
+    if (val > max) {return max;}
+    if (val < min) {return min;}
+    return val;
+}
+
+int find_closest_palette_color(int old_pix_col) {
+    return (old_pix_col < 128) ? 0 : 255;
+}
+
+int dither(Image *img) {
+    grayscale(img);
+    for (int i = 0; i < img->rows; i++) {
+        for (int j = 0; j < img->cols; j++) {
+            int idx = i * img->cols + j;
+            int old_pix_col = img->data[idx].r;
+            int new_pix_col = find_closest_palette_color(old_pix_col);
+            img->data[idx].r = new_pix_col;
+            img->data[idx].g = new_pix_col;
+            img->data[idx].b = new_pix_col;
+            int quant_error = old_pix_col - new_pix_col;
+            if (j + 1 < img->cols) {
+                int idx = i * img->cols + (j + 1);
+                img->data[idx].r = clamp(img->data[idx].r + round(quant_error * (7.0/16.0)), 0, 255);
+                img->data[idx].g = clamp(img->data[idx].g + round(quant_error * (7.0/16.0)), 0, 255);
+                img->data[idx].b = clamp(img->data[idx].b + round(quant_error * (7.0/16.0)), 0, 255);
+            }
+            if (i + 1 < img->rows) {
+                int idx = (i + 1) * img->cols + j;
+                img->data[idx].r = clamp(img->data[idx].r + round(quant_error * (5.0/16.0)), 0, 255);
+                img->data[idx].g = clamp(img->data[idx].g + round(quant_error * (5.0/16.0)), 0, 255);
+                img->data[idx].b = clamp(img->data[idx].b + round(quant_error * (5.0/16.0)), 0, 255);
+                if (j - 1 >= 0) {
+                    int idx = (i + 1) * img->cols + (j - 1);
+                    img->data[idx].r = clamp(img->data[idx].r + round(quant_error * (3.0/16.0)), 0, 255);
+                    img->data[idx].g = clamp(img->data[idx].g + round(quant_error * (3.0/16.0)), 0, 255);
+                    img->data[idx].b = clamp(img->data[idx].b + round(quant_error * (3.0/16.0)), 0, 255);
+                }
+                if (j + 1 < img->cols) {
+                    int idx = (i + 1) * img->cols + (j + 1);
+                    img->data[idx].r = clamp(img->data[idx].r + round(quant_error * (1.0/16.0)), 0, 255);
+                    img->data[idx].g = clamp(img->data[idx].g + round(quant_error * (1.0/16.0)), 0, 255);
+                    img->data[idx].b = clamp(img->data[idx].b + round(quant_error * (1.0/16.0)), 0, 255);
+                }
+            }
+        }
+    }
 
     return 0;
 }
