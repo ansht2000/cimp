@@ -164,6 +164,26 @@ int runImgProcessing(int argc, char **argv) {
             return 6;  // Incorrect number of arguments
         }
         status = dither(img);
+    } else if (strcmp(operation, "flip") == 0) {
+        if (argc != 5) {
+            fprintf(stderr, "Error: Incorrect number of arguments for pointilism.\n");
+            FreeImage(img);
+            fclose(input_file);
+            fclose(output_file);
+            return 6;  // Incorrect number of arguments
+        }
+        unsigned char axis = argv[4][0];
+        status = flip(img, axis);
+    } else if (strcmp(operation, "rotate") == 0) {
+        if (argc != 5) {
+            fprintf(stderr, "Error: Incorrect number of arguments for pointilism.\n");
+            FreeImage(img);
+            fclose(input_file);
+            fclose(output_file);
+            return 6;  // Incorrect number of arguments
+        }
+        unsigned char direction = argv[4][0];
+        status = rotate(img, direction);
     } else {
         fprintf(stderr, "Error: Unsupported image processing operation.\n");
         FreeImage(img);

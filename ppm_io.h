@@ -13,6 +13,7 @@
 #define MIDTERM_PPM_IO_H_
 
 #include <stdio.h> // c file type: FILE
+#include <stdint.h>
 
 /* A struct to store a point (2D coordinate).
  */ 
@@ -24,9 +25,9 @@ typedef struct _point {
 /* A struct to store a single RGB pixel, one byte per color channel.
  */
 typedef struct _pixel {
-  unsigned char r;
-  unsigned char g;
-  unsigned char b;
+  uint8_t r;
+  uint8_t g;
+  uint8_t b;
 } Pixel;
 
 /* A struct to bundle together a pixel array with the other

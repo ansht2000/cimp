@@ -5,6 +5,7 @@
 #include "ppm_io.h"
 #include <math.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define max(a, b) ((a) > (b) ? (a) : (b))
 #define min(a, b) ((a) < (b) ? (a) : (b))
@@ -15,12 +16,12 @@
  */
 int grayscale(Image *img) {
     const size_t img_data_length = (size_t) img->rows * img->cols;
-    unsigned char gray;
-    Pixel *pix = img->data;
+    uint8_t gray;
+    Pixel *data = img->data;
     // assign the gray value for each pixel
-    for (size_t i = 0; i < img_data_length; ++i, ++pix) {
-        gray = (77 * pix->r + 150 * pix->g + 29 * pix->b) >> 8;
-        pix->r = pix->g = pix->b = gray;
+    for (size_t i = 0; i < img_data_length; ++i, ++data) {
+        gray = (77 * data->r + 150 * data->g + 29 * data->b) >> 8;
+        data->r = data->g = data->b = gray;
     }
     return 0;
 }
@@ -32,23 +33,19 @@ int grayscale(Image *img) {
 int binarize(Image *img, int threshold) {
     // grayscale image first
     grayscale(img);
-    int img_data_length = img->rows * img->cols;
-    Pixel buffer_pixel;
-    int grayscale;
+    const size_t img_data_length = img->rows * img->cols;
+    uint8_t gray;
+    Pixel *data = img->data;
     // checks each pixel and converts its color to white/black depending on relation to threshold
-    for (int i = 0; i < img_data_length; i++) {
-        buffer_pixel = img->data[i];
-        grayscale = (int) buffer_pixel.r;
-        if (grayscale < threshold) {
+    for (size_t i = 0; i < img_data_length; ++i, ++data) {
+        // could pick any of the three channels
+        gray = data->r;
+        if (gray < threshold) {
             // set pixel color to black
-            img->data[i].r = 0;
-            img->data[i].g = 0;
-            img->data[i].b = 0;
+            data->r = data->g = data->b = 0;
         } else {
             // set pixel color to white
-            img->data[i].r = 255;
-            img->data[i].g = 255;
-            img->data[i].b = 255;
+            data->r = data->g = data->b = 255;
         }
     }
     return 0;
@@ -58,30 +55,109 @@ int binarize(Image *img, int threshold) {
  * Crop the input image given corner pixel locations.
  * Return 0 if successful.
  */
-int crop(Image *img, int top_left_col, int top_left_row, int bottom_right_col, int bottom_right_row) {
+int crop(Image *img,
+         int top_left_col, int top_left_row,
+         int bottom_right_col, int bottom_right_row) {
     // set cropped image height and width
-    int im_crop_height = bottom_right_row - top_left_row;
-    int im_crop_width = bottom_right_col - top_left_col;
-    Image im_crop;
-    im_crop.data = malloc(sizeof(Pixel) * im_crop_height * im_crop_width);
+    size_t new_rows = bottom_right_row - top_left_row;
+    size_t new_cols = bottom_right_col - top_left_col;
+    Pixel *data = malloc(sizeof(Pixel) * new_rows * new_cols);
     // initialize cropped image data
-    if (im_crop.data == NULL) {
+    if (data == NULL) {
         fprintf(stderr, "Memory allocation failed.\n");
         return 8;
     }
-    // iterate through cropped image data
-    for (int i = 0; i < im_crop_height; i++) {
-        for (int j = 0; j < im_crop_width; j++) {
-            int crop_index = im_crop_width * i + j;
-            int full_index = img->cols * (top_left_row + i) + (top_left_col + j);
-            im_crop.data[crop_index] = img->data[full_index];
-        }
+    // iterate through the rows of the new data
+    // and copy over the old data in one shot
+    for (size_t i = 0; i < new_rows; ++i) {
+        memcpy(data + new_cols * i,
+               img->data + (top_left_row + i) * img->cols + top_left_col,
+               sizeof(Pixel) * new_cols);
     }
     free(img->data);
     // update image with new rows, cols, data
-    img->rows = im_crop_height;
-    img->cols = im_crop_width;
-    img->data = im_crop.data;
+    img->rows = new_rows;
+    img->cols = new_cols;
+    img->data = data;
+    return 0;
+}
+
+unsigned char toLowerChar(unsigned char l) {
+    if (l < 'a') {
+        l ^= 32;
+    }
+    return l;
+}
+
+/* flip
+ * Flip the image across the specified axis, 'v' for vertical axis, 'h' for horizontal axis
+ * Return 0 if successful
+ */
+int flip(Image *img, unsigned char axis) {
+    // if axis is uppercase, toggle it to lowercase
+    axis = toLowerChar(axis);
+    Pixel *data = malloc(img->cols * img->rows * sizeof(Pixel));
+    switch (axis) {
+    case 'v':
+        for (size_t i = 0; i < (size_t)img->cols; ++i) {
+            for (size_t j = 0; j < (size_t)img->rows; ++j) {
+                data[j * img->cols + i] = img->data[j * img->cols + (img->cols - (i + 1))];
+            }
+        }
+        break;
+    case 'h':
+        for (size_t i = 0; i < (size_t)img->rows; ++i) {
+            memcpy(data + img->cols * i,
+                   img->data + img->cols * (img->rows - (i + 1)),
+                   sizeof(Pixel) * img->cols);
+        }
+        break;
+    default:
+        free(data);
+        return 1;
+    }
+    free(img->data);
+    img->data = data;
+    return 0;
+}
+
+/* rotate
+ * Rotate the image counter-clockwise or clockwise, 'l' for counter-clockwise, 'r' for clockwise
+ * Return 0 if successful
+ */
+int rotate(Image *img, unsigned char direction) {
+    direction = toLowerChar(direction);
+    Pixel *data = malloc(img->cols * img->rows * sizeof(Pixel));
+    size_t new_rows = img->cols;
+    size_t new_cols = img->rows;
+    switch (direction) {
+    case 'l':
+        // to rotate left, start copying og image data from the top right
+        // and move pixel pointer columnwise
+        for (size_t i = 0; i < new_rows; ++i) {
+            for (size_t j = 0; j < new_cols; ++j) {
+                data[i * new_cols + j] = img->data[j * img->cols + (img->cols - (i + 1))];
+            }
+        }
+        break;
+    case 'r':
+        // code
+        // to rotate right, start copying og image data from the bottom left
+        // and move pixel pointer columnwise
+        for (size_t i = 0; i < new_rows; ++i) {
+            for (size_t j = 0; j < new_cols; ++j) {
+                data[i * new_cols + j] = img->data[(img->rows - (j + 1)) * img->cols + i];
+            }
+        }
+        break;
+    default:
+        free(data);
+        return 1;
+    }
+    free(img->data);
+    img->data = data;
+    img->rows = new_rows;
+    img->cols = new_cols;
     return 0;
 }
 
@@ -123,7 +199,7 @@ int transpose(Image *img) {
  * Helper function to compute the gradient.
  * Return the gradient.
  */
-int computeGrad(Image *img, int cols, int i) {
+static int computeGrad(Image *img, int cols, int i) {
     // get rgb values for neighboring pixels
     unsigned char gray_right = img->data[i + 1].r;
     unsigned char gray_left = img->data[i - 1].r;
@@ -177,7 +253,7 @@ int gradient(Image *img) {
 /* createSeamsAndGradEnergies
  * Create seams and find the gradient energy for each seam
  */
-void createSeamsAndGradEnergies(Image *grad_img, int **seams, int *grad_energies) {
+static void createSeamsAndGradEnergies(Image *grad_img, int **seams, int *grad_energies) {
     // initialize variables for all the image dimensions
     int grad_img_rows = grad_img->rows;
     int grad_img_cols = grad_img->cols;
@@ -217,7 +293,7 @@ void createSeamsAndGradEnergies(Image *grad_img, int **seams, int *grad_energies
 /* findLeastEnergySeamAndRemove
  * Remove seam with least gradient energy from input image
  */
-void findLeastEnergySeamAndRemove(Image *img, Image *img_copy, int **seams, int *grad_energies) {
+static void findLeastEnergySeamAndRemove(Image *img, Image *img_copy, int **seams, int *grad_energies) {
     // initialize variables for image dimensions and least gradient energy
     int img_copy_cols = img_copy->cols;
     int img_rows = img->rows;
@@ -247,7 +323,7 @@ void findLeastEnergySeamAndRemove(Image *img, Image *img_copy, int **seams, int 
  * Operate seam carving instruction for the given number of seams
  * Return 0 if successful
  */
-int carveSeams(Image *img, int num_seams) {
+static int carveSeams(Image *img, int num_seams) {
     // called in seam for carving column and row seams
     for (int i = 0; i < num_seams; i++) {
         // create copy of image to store the gradient data
@@ -379,12 +455,12 @@ int blend(Image *img_one, Image *img_two, Image **img_blend, float alpha) {
     return 0;
 }
 
-int randInRange(int min, int max) {
+static int randInRange(int min, int max) {
     int rand_num = rand() % (max - min + 1) + min;
     return rand_num;
 }
 
-void drawCircle(Point top_left, Point bottom_right, Point center, int radius, Image *og_img, Pixel *img_point_data) {
+static void drawCircle(Point top_left, Point bottom_right, Point center, int radius, Image *og_img, Pixel *img_point_data) {
     int cols_len = og_img->cols;
     for (int i = top_left.x; i < bottom_right.x; i++) {
         for (int j = top_left.y; j < bottom_right.y; j++) {
@@ -412,7 +488,7 @@ int pointilism(Image *img) {
             int chance = randInRange(1, 100);
             if (chance == 69 || chance == 42 || chance == 28) {
                 radius = randInRange(3, 10);
-                struct _point top_left = {max(j - radius, 0), max(i - radius, 0)};
+                Point top_left = {max(j - radius, 0), max(i - radius, 0)};
                 struct _point bottom_right = {min(j + radius, img->cols), min(i + radius, img->rows)};
                 struct _point center = {j, i};
                 drawCircle(top_left, bottom_right, center, radius, img, img_point_data);
@@ -426,13 +502,13 @@ int pointilism(Image *img) {
     return 0;
 }
 
-int clamp(int val, int min, int max) {
+static int clamp(int val, int min, int max) {
     if (val > max) {return max;}
     if (val < min) {return min;}
     return val;
 }
 
-int find_closest_palette_color(int old_pix_col) {
+static int findClosestPaletteColor(int old_pix_col) {
     return (old_pix_col < 128) ? 0 : 255;
 }
 
@@ -442,7 +518,7 @@ int dither(Image *img) {
         for (int j = 0; j < img->cols; j++) {
             int idx = i * img->cols + j;
             int old_pix_col = img->data[idx].r;
-            int new_pix_col = find_closest_palette_color(old_pix_col);
+            int new_pix_col = findClosestPaletteColor(old_pix_col);
             img->data[idx].r = new_pix_col;
             img->data[idx].g = new_pix_col;
             img->data[idx].b = new_pix_col;
