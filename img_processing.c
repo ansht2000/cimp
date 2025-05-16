@@ -97,6 +97,10 @@ int flip(Image *img, unsigned char axis) {
     // if axis is uppercase, toggle it to lowercase
     axis = toLowerChar(axis);
     Pixel *data = malloc(img->cols * img->rows * sizeof(Pixel));
+    if (data == NULL) {
+        fprintf(stderr, "Memory allocation failed.\n");
+        return 8;
+    }
     switch (axis) {
     case 'v':
         for (size_t i = 0; i < (size_t)img->cols; ++i) {
@@ -128,6 +132,10 @@ int flip(Image *img, unsigned char axis) {
 int rotate(Image *img, unsigned char direction) {
     direction = toLowerChar(direction);
     Pixel *data = malloc(img->cols * img->rows * sizeof(Pixel));
+    if (data == NULL) {
+        fprintf(stderr, "Memory allocation failed.\n");
+        return 8;
+    }
     size_t new_rows = img->cols;
     size_t new_cols = img->rows;
     switch (direction) {
@@ -141,7 +149,6 @@ int rotate(Image *img, unsigned char direction) {
         }
         break;
     case 'r':
-        // code
         // to rotate right, start copying og image data from the bottom left
         // and move pixel pointer columnwise
         for (size_t i = 0; i < new_rows; ++i) {
@@ -158,40 +165,6 @@ int rotate(Image *img, unsigned char direction) {
     img->data = data;
     img->rows = new_rows;
     img->cols = new_cols;
-    return 0;
-}
-
-/* transpose
- * Transpose the input image.
- * Return 0 if successful.
- */
-int transpose(Image *img) {
-    Image im_trans;
-    // flip image dimensions
-    int trans_cols = img->rows;
-    int trans_rows = img->cols;
-    // initialize transpose image dimensions to use for initialization later
-    im_trans.rows = trans_rows;
-    im_trans.cols = trans_cols;
-    // allocate space for transpose image data
-    im_trans.data = malloc(sizeof(Pixel) * (trans_rows) * trans_cols);
-    if (im_trans.data == NULL) {
-        fprintf(stderr, "Memory allocation failed.\n");
-        return 8;
-    }
-    // loop through rows and columns of transpose image data
-    for (int i = 0; i < trans_rows; i++) {
-        for (int j = 0; j < trans_cols; j++) {
-            int trans_index = trans_cols * i + j;
-            int mat_index = trans_rows * j + i;
-            im_trans.data[trans_index] = img->data[mat_index];
-        }
-    }
-    free(img->data);
-    // update image with new rows, cols, data
-    img->rows = trans_rows;
-    img->cols = trans_cols;
-    img->data = im_trans.data;
     return 0;
 }
 
