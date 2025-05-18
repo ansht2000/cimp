@@ -1,6 +1,3 @@
-// Ansh Tarafder atarafd1
-// Alex Ma ama12
-// Amy Wang awang111
 #include "img_processing.h"
 #include "ppm_io.h"
 #include <math.h>
@@ -172,17 +169,16 @@ int rotate(Image *img, unsigned char direction) {
  * Helper function to compute the gradient.
  * Return the gradient.
  */
-static int computeGrad(Image *img, int cols, int i) {
+static int computeGrad(Image *img, size_t cols, size_t i) {
     // get rgb values for neighboring pixels
-    unsigned char gray_right = img->data[i + 1].r;
-    unsigned char gray_left = img->data[i - 1].r;
-    unsigned char gray_down = img->data[i + cols].r;
-    unsigned char gray_up = img->data[i - cols].r;
-    // compute gradient from neighboring pixel values
+    uint8_t gray_right = img->data[i + 1].r;
+    uint8_t gray_left = img->data[i - 1].r;
+    uint8_t gray_down = img->data[i + cols].r;
+    uint8_t gray_up = img->data[i - cols].r;
+    // compute gradient from neighboring pixel values 
     int grad_x = (gray_right - gray_left) / 2;
     int grad_y = (gray_down - gray_up) / 2;
-    int grad = floor(fabs((float)grad_x) + fabs((float)grad_y));
-    if (grad > 255) grad = 255;
+    uint8_t grad = floor(fabs((float)grad_x) + fabs((float)grad_y));
     return grad;
 }
 
@@ -192,34 +188,32 @@ static int computeGrad(Image *img, int cols, int i) {
  */
 int gradient(Image *img) {
     grayscale(img);
-    int cols = img->cols;
-    int rows = img->rows;
-    int grad;
+    const size_t cols = img->cols;
+    const size_t rows = img->rows;
+    const size_t img_length = rows * cols;
+    uint8_t grad;
     // have to create new data because working on the same array
     // will mess up the gradient calculation
-    Pixel *grad_data = (Pixel *)malloc(sizeof(Pixel) * cols * rows);
-    if (grad_data == NULL) {
+    Pixel *data = (Pixel *)malloc(sizeof(Pixel) * cols * rows);
+    if (data == NULL) {
         fprintf(stderr, "Memory allocation failed.\n");
         return 8;
     }
-    int img_length = rows * cols;
+    // make a copy of the data pointer to iterate over
+    Pixel *buf = data;
     // iterate through image array and assign pixel values
-    for (int i = 0; i < img_length; i++) {
-        if (i < cols || i > cols * (rows - 1) || i%cols == 0 || i%cols == cols - 1) {
-            // set pixel to black
-            grad_data[i].r = 0;
-            grad_data[i].g = 0;
-            grad_data[i].b = 0;
+    for (size_t i = 0; i < img_length; ++i, ++buf) {
+        if (i < cols || i >= cols * (rows - 1) || i%cols == 0 || i%cols == cols - 1) {
+            // set pixel on edges to black
+            buf->r = buf->g = buf->b = 0;
         } else {
             // set pixel to grad value calculate by computeGrad
             grad = computeGrad(img, cols, i);
-            grad_data[i].r = (unsigned char)grad;
-            grad_data[i].g = (unsigned char)grad;
-            grad_data[i].b = (unsigned char)grad;
+            buf->r = buf->g = buf->b = grad;
         }
     }
     free(img->data);
-    img->data = grad_data;
+    img->data = data;
     return 0;
 }
 
@@ -376,7 +370,7 @@ int seam(Image *img, float scale_factor_col, float scale_factor_row) {
     if (status != 0) {
         return status;
     }
-    status = transpose(img);
+    status = rotate(img, 'l');
     if (status != 0) {
         return status;
     }
@@ -384,7 +378,7 @@ int seam(Image *img, float scale_factor_col, float scale_factor_row) {
     if (status != 0) {
         return status;
     }
-    status = transpose(img);
+    status = rotate(img, 'r');
     if (status != 0) {
         return status;
     }

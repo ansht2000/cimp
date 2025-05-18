@@ -1,16 +1,5 @@
-// Ansh Tarafder atarafd1
-// Alex Ma ama12
-// Amy Wang awang111
-/*****************************************************************************
- * Midterm Project - PPM file input/output header file
- * Note: for naming convention, we try to follow Google C++ style guide:
- *       https://google.github.io/styleguide/cppguide.html
- * It is not compulsory, but you are highly encouraged to follow a convention.
- * 
- * Summary: This file provides the utility functions to read/write PPM file
- *****************************************************************************/
-#ifndef MIDTERM_PPM_IO_H_
-#define MIDTERM_PPM_IO_H_
+#ifndef PPM_IO_H
+#define PPM_IO_H
 
 #include <stdio.h> // c file type: FILE
 #include <stdint.h>
@@ -72,4 +61,4 @@ Image* CopyImage (Image *img);
  */
 void FreeImage (Image *img);
 
-#endif // MIDTERM_PPM_IO_H_
+#endif // PPM_IO_H

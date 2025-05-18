@@ -1,6 +1,6 @@
-// Ansh Tarafder atarafd1
-// Alex Ma ama12
-// Amy Wang awang111
+#ifndef CIMP_DRIVER_H
+#define CIMP_DRIVER_H
+
 #include "ppm_io.h" // PPM I/O header
 #include "img_processing.h"
 #include <stdio.h>
@@ -17,3 +17,5 @@ void printUsage(const char *prog_name);
  * Returns 0 if successful, otherwise error occurred.
  */
 int runImgProcessing(int argc, char **argv);
+
+#endif // CIMP_DRIVER_H

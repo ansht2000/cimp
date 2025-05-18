@@ -1,6 +1,3 @@
-// Ansh Tarafder atarafd1
-// Alex Ma ama12
-// Amy Wang awang111
 #include "cimp_driver.h"
 #include "ppm_io.h"
 
@@ -95,15 +92,6 @@ int runImgProcessing(int argc, char **argv) {
             return 7;  // Invalid arguments for operation
         }
         status = crop(img, x1, y1, x2, y2);
-    } else if (strcmp(operation, "transpose") == 0) {
-        if (argc != 4) {
-            fprintf(stderr, "Error: Incorrect number of arguments for transpose.\n");
-            FreeImage(img);
-            fclose(input_file);
-            fclose(output_file);
-            return 6;  // Incorrect number of arguments
-        }
-        status = transpose(img);
     } else if (strcmp(operation, "gradient") == 0) {
         if (argc != 4) {
             fprintf(stderr, "Error: Incorrect number of arguments for gradient.\n");

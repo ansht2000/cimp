@@ -1,6 +1,3 @@
-// Ansh Tarafder atarafd1
-// Alex Ma ama12
-// Amy Wang awang111
 #ifndef IMG_PROCESSING_H
 #define IMG_PROCESSING_H
 
