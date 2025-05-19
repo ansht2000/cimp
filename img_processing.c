@@ -4,8 +4,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define max(a, b) ((a) > (b) ? (a) : (b))
-#define min(a, b) ((a) < (b) ? (a) : (b))
+static inline int imin(int a, int b) { return a < b ? a : b; }
+static inline int imax(int a, int b) { return a > b ? a : b; }
+
+static int clamp(int val, int min, int max) {
+    if (val > max) {return max;}
+    if (val < min) {return min;}
+    return val;
+}
 
 /* grayscale
  * Convert the input image to grayscale.
@@ -165,20 +171,53 @@ int rotate(Image *img, unsigned char direction) {
     return 0;
 }
 
+/* transpose
+ * Transpose the input image.
+ * Return 0 if successful.
+ */
+int transpose(Image *img) {
+    // flip image dimensions
+    int trans_cols = img->rows;
+    int trans_rows = img->cols;
+    // allocate space for transpose image data
+    Pixel *data = malloc(sizeof(Pixel) * (trans_rows) * trans_cols);
+    if (data == NULL) {
+        fprintf(stderr, "Memory allocation failed.\n");
+        return 8;
+    }
+
+    // loop through rows and columns of transpose image data
+    for (int i = 0; i < trans_rows; i++) {
+        for (int j = 0; j < trans_cols; j++) {
+            data[trans_cols * i + j] = img->data[trans_rows * j + i];
+        }
+    }
+
+    free(img->data);
+    // update image with new rows, cols, data
+    img->rows = trans_rows;
+    img->cols = trans_cols;
+    img->data = data;
+    return 0;
+}
+
 /* computeGrad
  * Helper function to compute the gradient.
  * Return the gradient.
  */
 static int computeGrad(Image *img, size_t cols, size_t i) {
-    // get rgb values for neighboring pixels
-    uint8_t gray_right = img->data[i + 1].r;
-    uint8_t gray_left = img->data[i - 1].r;
-    uint8_t gray_down = img->data[i + cols].r;
-    uint8_t gray_up = img->data[i - cols].r;
-    // compute gradient from neighboring pixel values 
-    int grad_x = (gray_right - gray_left) / 2;
-    int grad_y = (gray_down - gray_up) / 2;
-    uint8_t grad = floor(fabs((float)grad_x) + fabs((float)grad_y));
+    // compute gradient from neighboring pixel values
+    // by convolving with sobel 3 x 3 matrix:
+    // g_x = [-1  0  1]   g_y = [ 1  2  1]
+    //       [-2  0  2]       = [ 0  0  0]
+    //       [-1  0  1]       = [-1 -2  1]
+    // each directional gradient is scaled by 1/8 to get pixel accurate value
+    int grad_x = (-img->data[i - (cols + 1)].r - 2 * img->data[i - 1].r - img->data[i + cols - 1].r
+                 + img->data[i - (cols - 1)].r + 2 * img->data[i + 1].r + img->data[i + cols + 1].r) >> 3;
+    int grad_y = (img->data[i - (cols + 1)].r + 2 * img->data[i - cols].r + img->data[i - (cols - 1)].r
+                - img->data[i + cols - 1].r - 2 * img->data[i + cols].r - img->data[i + cols + 1].r) >> 3;
+    // get norm of gradient
+    uint8_t grad = sqrt(grad_x * grad_x + grad_y * grad_y);
     return grad;
 }
 
@@ -190,7 +229,7 @@ int gradient(Image *img) {
     grayscale(img);
     const size_t cols = img->cols;
     const size_t rows = img->rows;
-    const size_t img_length = rows * cols;
+    const size_t img_data_length = rows * cols;
     uint8_t grad;
     // have to create new data because working on the same array
     // will mess up the gradient calculation
@@ -199,21 +238,29 @@ int gradient(Image *img) {
         fprintf(stderr, "Memory allocation failed.\n");
         return 8;
     }
-    // make a copy of the data pointer to iterate over
-    Pixel *buf = data;
+    // set max_grad to 0 because all the grad values are positive
+    uint8_t max_grad = 0;
     // iterate through image array and assign pixel values
-    for (size_t i = 0; i < img_length; ++i, ++buf) {
-        if (i < cols || i >= cols * (rows - 1) || i%cols == 0 || i%cols == cols - 1) {
+    for (size_t i = 0; i < img_data_length; ++i, ++data) {
+        if (i < cols || i > cols * (rows - 1) || i%cols == 0 || i%cols == cols - 1) {
             // set pixel on edges to black
-            buf->r = buf->g = buf->b = 0;
+            data->r = data->g = data->b = 0;
         } else {
-            // set pixel to grad value calculate by computeGrad
+            // set pixel to gradient value
             grad = computeGrad(img, cols, i);
-            buf->r = buf->g = buf->b = grad;
+            max_grad = imax(max_grad, grad);
+            data->r = data->g = data->b = grad;
         }
     }
+    // find the value to scale each pixel by so the max is 255
+    float scale = 255.0 / max_grad;
+    // reset data pointer to point to beginning of data
+    data -= img_data_length;
+    for (size_t i = 0; i < img_data_length; ++i, ++data) {
+        data->r = data->g = data->b = clamp(round(scale * data->r), 0, 255);
+    }
     free(img->data);
-    img->data = data;
+    img->data = data - img_data_length;
     return 0;
 }
 
@@ -370,7 +417,7 @@ int seam(Image *img, float scale_factor_col, float scale_factor_row) {
     if (status != 0) {
         return status;
     }
-    status = rotate(img, 'l');
+    status = transpose(img);
     if (status != 0) {
         return status;
     }
@@ -378,7 +425,7 @@ int seam(Image *img, float scale_factor_col, float scale_factor_row) {
     if (status != 0) {
         return status;
     }
-    status = rotate(img, 'r');
+    status = transpose(img);
     if (status != 0) {
         return status;
     }
@@ -395,8 +442,8 @@ int blend(Image *img_one, Image *img_two, Image **img_blend, float alpha) {
         return 1;
     }
 
-    int blend_img_cols = max(img_one->cols, img_two->cols);
-    int blend_img_rows = max(img_one->rows, img_two->rows);
+    int blend_img_cols = imax(img_one->cols, img_two->cols);
+    int blend_img_rows = imax(img_one->rows, img_two->rows);
     *img_blend = NewImage(blend_img_rows, blend_img_cols);
 
     for (int i = 0; i < blend_img_rows; i++) {
@@ -455,8 +502,8 @@ int pointilism(Image *img) {
             int chance = randInRange(1, 100);
             if (chance == 69 || chance == 42 || chance == 28) {
                 radius = randInRange(3, 10);
-                Point top_left = {max(j - radius, 0), max(i - radius, 0)};
-                struct _point bottom_right = {min(j + radius, img->cols), min(i + radius, img->rows)};
+                Point top_left = {imax(j - radius, 0), imax(i - radius, 0)};
+                struct _point bottom_right = {imin(j + radius, img->cols), imin(i + radius, img->rows)};
                 struct _point center = {j, i};
                 drawCircle(top_left, bottom_right, center, radius, img, img_point_data);
             }
@@ -467,12 +514,6 @@ int pointilism(Image *img) {
     img->data = img_point_data;
 
     return 0;
-}
-
-static int clamp(int val, int min, int max) {
-    if (val > max) {return max;}
-    if (val < min) {return min;}
-    return val;
 }
 
 static int findClosestPaletteColor(int old_pix_col) {

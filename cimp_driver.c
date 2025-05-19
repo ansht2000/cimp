@@ -172,6 +172,15 @@ int runImgProcessing(int argc, char **argv) {
         }
         unsigned char direction = argv[4][0];
         status = rotate(img, direction);
+    } else if (strcmp(operation, "transpose") == 0) {
+        if (argc != 4) {
+            fprintf(stderr, "Error: Incorrect number of arguments for gradient.\n");
+            FreeImage(img);
+            fclose(input_file);
+            fclose(output_file);
+            return 6;  // Incorrect number of arguments
+        }
+        status = transpose(img);
     } else {
         fprintf(stderr, "Error: Unsupported image processing operation.\n");
         FreeImage(img);

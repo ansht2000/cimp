@@ -14,6 +14,8 @@ int flip(Image *img, unsigned char axis);
 
 int rotate(Image *img, unsigned char direction);
 
+int transpose(Image *img);
+
 int gradient(Image *img);
 
 int seam(Image *img, float scale_factor_row, float scale_factor_col);
