@@ -217,7 +217,7 @@ static int computeGrad(Image *img, size_t cols, size_t i) {
     int grad_y = (img->data[i - (cols + 1)].r + 2 * img->data[i - cols].r + img->data[i - (cols - 1)].r
                 - img->data[i + cols - 1].r - 2 * img->data[i + cols].r - img->data[i + cols + 1].r) >> 3;
     // get norm of gradient
-    uint8_t grad = sqrt(grad_x * grad_x + grad_y * grad_y);
+    uint8_t grad = clamp(round(sqrt(grad_x * grad_x + grad_y * grad_y)), 0, 255);
     return grad;
 }
 
@@ -242,7 +242,7 @@ int gradient(Image *img) {
     uint8_t max_grad = 0;
     // iterate through image array and assign pixel values
     for (size_t i = 0; i < img_data_length; ++i, ++data) {
-        if (i < cols || i > cols * (rows - 1) || i%cols == 0 || i%cols == cols - 1) {
+        if (i < cols || i >= cols * (rows - 1) || i%cols == 0 || i%cols == cols - 1) {
             // set pixel on edges to black
             data->r = data->g = data->b = 0;
         } else {
@@ -430,6 +430,10 @@ int seam(Image *img, float scale_factor_col, float scale_factor_row) {
         return status;
     }
     return status;
+}
+
+int rescale(Image *img) {
+    
 }
 
 /* blend
