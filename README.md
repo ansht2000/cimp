@@ -28,7 +28,7 @@ make cimp
 
 This will create the cimp executable, which you can run with 
 ```
-./cimp <input_file> <output_file> <operation> \[<args>\]
+./cimp <input_file> <output_file> <operation> [<args>]
 ```
 
 ## Commands
